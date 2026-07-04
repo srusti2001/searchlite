@@ -5,10 +5,12 @@ import com.searchlite.dto.DocumentResponse;
 import com.searchlite.dto.UpdateDocumentRequest;
 import com.searchlite.entity.Document;
 import com.searchlite.exception.ResourceNotFoundException;
+import com.searchlite.indexing.IndexService;
 import com.searchlite.repository.DocumentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import javax.print.Doc;
 import java.util.List;
 
 @Service
@@ -16,6 +18,8 @@ import java.util.List;
 public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
+
+    private final IndexService indexService;
 
     @Override
     public DocumentResponse createDocument(CreateDocumentRequest request) {
@@ -27,6 +31,8 @@ public class DocumentServiceImpl implements DocumentService {
         document.setAuthor(request.getAuthor());
 
         Document savedDocument = documentRepository.save(document);
+
+        indexService.indexDocument(savedDocument);
 
         return mapToResponse(savedDocument);
     }
@@ -63,7 +69,7 @@ public class DocumentServiceImpl implements DocumentService {
         document.setAuthor(request.getAuthor());
 
         Document updatedDocument = documentRepository.save(document);
-
+        indexService.indexDocument(updatedDocument);
         return mapToResponse(updatedDocument);
     }
 
@@ -74,7 +80,8 @@ public class DocumentServiceImpl implements DocumentService {
             throw new ResourceNotFoundException(
                     "Document not found with id : " + id);
         }
-
+        Document document = documentRepository.findById(id).orElseThrow();
+        indexService.removeDocument(document);
         documentRepository.deleteById(id);
     }
 
